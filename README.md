@@ -22,7 +22,7 @@
 
 * High-speed scanning (10,000+ mutations/min) for open redirect detection.
 * URL mutation engine to fuzz redirect parameters.
-* Match response status codes (`-mc`) and filter vulnerable results only (`-vuln`).
+* Match response status codes (`-m`) and filter vulnerable results only (`-v`).
 * Built-in concurrency control for optimal performance.
 * Color-coded output and real-time counters.
 
