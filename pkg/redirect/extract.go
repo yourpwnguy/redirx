@@ -1,25 +1,35 @@
 package redirect
 
 import (
-	"net"
+	"fmt"
 	"net/url"
+	"strings"
+
+	"golang.org/x/net/publicsuffix"
 )
 
 // Extract Host from an URL
-func extractHost(URL string) string {
-	h, err := url.Parse(URL)
+func extractHost(URL string) (string, error) {
+	p, err := url.Parse(URL)
 	if err != nil {
-		return ""
+		return "", err
 	}
-	return h.Host
+	return p.Host, nil
 }
 
-// Strip Port from an HOST:PORT.
-// Returns HOST
-func stripPort(hostport string) string {
-	host, _, err := net.SplitHostPort(hostport)
+func getRegistrableDomain(URL string) (string, error) {
+	p, err := url.Parse(URL)
 	if err != nil {
-		return hostport
+		return "", err
 	}
-	return host
+	host := p.Hostname()
+
+	d, err := publicsuffix.EffectiveTLDPlusOne(host)
+	if err != nil {
+		if strings.Contains(host, ".") {
+			return host, nil
+		}
+		return "", fmt.Errorf("Could not get registrable domain")
+	}
+	return d, nil
 }

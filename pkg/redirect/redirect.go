@@ -5,18 +5,20 @@ import (
 )
 
 // Checking if there's an open-redirect
-func isOpenRedirect(u string) (string, int, error) {
+func isOpenRedirect(url string) (string, int, error) {
 
-	req, err := http.NewRequest(http.MethodHead, u, nil)
+	req, err := http.NewRequest(http.MethodHead, url, nil)
 	if err != nil {
 		return "", 0, err
 	}
 
 	req.Header.Set("User-Agent", "redirx-scan/1.0")
 
+	var finalURL string
 	client := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
+			finalURL = req.URL.String()
+			return nil
 		},
 	}
 
@@ -26,10 +28,7 @@ func isOpenRedirect(u string) (string, int, error) {
 	}
 	defer resp.Body.Close()
 
-	location, _ := resp.Location()
-	if location == nil {
-		return "", resp.StatusCode, nil
-	}
+	finalURL = resp.Request.URL.String()
 
-	return location.String(), resp.StatusCode, nil
+	return finalURL, resp.StatusCode, nil
 }

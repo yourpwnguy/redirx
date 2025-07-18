@@ -3,6 +3,7 @@ package redirect
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net/url"
 	"strings"
 	"sync"
@@ -33,9 +34,6 @@ func MutateAndCheck(
 		return nil, nil
 	}
 
-	// Saving original Host for later use
-	origHost := parsed.Host
-
 	var (
 		mu   sync.Mutex
 		hits []string
@@ -48,18 +46,29 @@ func MutateAndCheck(
 			if err := sem.Acquire(ctx, 1); err != nil {
 				return nil, err
 			}
-
 			wg.Add(1)
 			go func(param, payload string) {
 				defer sem.Release(1)
 				defer wg.Done()
 
 				cntr.IncMut()
-
 				clone := *parsed
-				cloneQ := clone.Query()
-				cloneQ.Set(param, payload)
-				clone.RawQuery = cloneQ.Encode()
+
+				tempQ := make(url.Values)
+				maps.Copy(tempQ, q)
+
+				var rawQueryParams []string
+				for k, v := range tempQ {
+					if k == param {
+						rawQueryParams = append(rawQueryParams, k+"="+payload)
+					} else {
+						for _, val := range v {
+							rawQueryParams = append(rawQueryParams, k+"="+url.QueryEscape(val))
+						}
+					}
+				}
+				clone.RawQuery = strings.Join(rawQueryParams, "&")
+
 				testURL := clone.String()
 
 				redirURL, sc, err := isOpenRedirect(testURL)
@@ -68,9 +77,19 @@ func MutateAndCheck(
 					return
 				}
 
-				host := extractHost(redirURL)
+				host, err := getRegistrableDomain(redirURL)
+				if err != nil {
+					cntr.IncSafe()
+					return
+				}
 
-				isVuln := host != "" && !strings.EqualFold(stripPort(origHost), stripPort(host))
+				origHost, err := getRegistrableDomain(rawURL)
+				if err != nil {
+					cntr.IncSafe()
+					return
+				}
+
+				isVuln := host != "" && !strings.EqualFold(origHost, host)
 				toShow := matchCodes(sc, cfg.MatchCodes)
 
 				if isVuln {
@@ -101,7 +120,6 @@ func MutateAndCheck(
 					}
 				}
 				out <- ""
-
 			}(param, payload)
 		}
 	}
