@@ -1,0 +1,79 @@
+version: 2
+
+project_name: redirx
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: redirx
+    main: ./cmd/redirx
+    binary: redirx
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      # -s -w strip debug info; cli.version is the single version source of truth.
+      - -s -w -X github.com/yourpwnguy/redirx/cmd/cli.version={{.Version}}
+
+archives:
+  - formats: [tar.gz]
+    # Windows users get zip; everyone else gets tar.gz.
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    files:
+      - README.md*
+      - LICENSE*
+      - CHANGELOG.md*
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  use: git
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - Merge pull request
+      - Merge branch
+
+# Native packages — Kali/Ubuntu (deb), RHEL (rpm), Arch (pacman) users install
+# without touching archives. Binaries land in /usr/bin automatically.
+nfpms:
+  - file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    vendor: redirx
+    homepage: https://github.com/yourpwnguy/redirx
+    maintainer: yourpwnguy
+    description: Open redirect vulnerability scanner with a mutation engine
+    license: MIT
+    formats:
+      - deb
+      - rpm
+      - archlinux
+
+release:
+  draft: false
+  mode: replace
+
+# Homebrew tap — uncomment once a homebrew-tap repo exists:
+# brews:
+#   - repository:
+#       owner: yourpwnguy
+#       name: homebrew-tap
+#     directory: Formula
+#     homepage: https://github.com/yourpwnguy/redirx
+#     description: Open redirect vulnerability scanner with a mutation engine
+#     license: MIT
