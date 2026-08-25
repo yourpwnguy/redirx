@@ -1,0 +1,33 @@
+name: release
+
+# Cutting a release is just: git tag vX.Y.Z && git push origin vX.Y.Z
+# GoReleaser builds the full matrix (linux/darwin/windows × amd64/arm64),
+# packages deb/rpm/arch, generates checksums + changelog, and publishes.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history — the changelog is built from tags
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
