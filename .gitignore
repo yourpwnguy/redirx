@@ -1,0 +1,13 @@
+# Build artifacts
+redirx
+redirx.exe
+dist/
+coverage.out
+*.test
+
+# Local env / editor noise
+.env
+.idea/
+.vscode/
+*.swp
+.DS_Store
