@@ -1,6 +1,6 @@
 # Build artifacts
-redirx
-redirx.exe
+/redirx
+/redirx.exe
 dist/
 coverage.out
 *.test
