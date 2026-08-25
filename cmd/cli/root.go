@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"strings"
 	"syscall"
 	"time"
@@ -39,13 +40,37 @@ var version = "dev"
 // A commit hash with a bolted-on "v" looks like a typo, so only actual
 // semantic versions earn the prefix.
 func displayVersion() string {
-	if strings.HasPrefix(version, "v") {
+	return withVPrefix(effectiveVersion())
+}
+
+// effectiveVersion resolves the best-known version, in priority order:
+//
+//  1. ldflags injection (make build, GoReleaser releases)
+//  2. the module version embedded by `go install module@vX.Y.Z`, which
+//     stamps debug.ReadBuildInfo even though no flags were passed
+//  3. the "dev" fallback for plain source builds (`go build ./...`)
+func effectiveVersion() string {
+	if version != "dev" {
 		return version
 	}
-	if isSemver(version) {
-		return "v" + version
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		// "(devel)" means a local source build: no tag to report.
+		if v := bi.Main.Version; v != "" && v != "(devel)" && !strings.HasPrefix(v, "v0.0.0") {
+			return v
+		}
 	}
-	return version
+	return "dev"
+}
+
+// withVPrefix adds the leading "v" when s is bare semantic versioning,
+// and leaves anything else (dev, commit hashes, already-prefixed tags)
+// untouched. A commit hash with a bolted-on "v" looks like a typo, so
+// only actual semantic versions earn the prefix.
+func withVPrefix(s string) string {
+	if strings.HasPrefix(s, "v") || !isSemver(s) {
+		return s
+	}
+	return "v" + s
 }
 
 // isSemver reports whether s looks like MAJOR.MINOR[.PATCH] with optional
