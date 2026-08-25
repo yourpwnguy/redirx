@@ -16,7 +16,9 @@ func TestDefault(t *testing.T) {
 		found[v] = true
 	}
 	if !found[`///google.com/%2f..`] {
-		t.Error("expected ///google.com/%2f.. in default payloads")
+		// Pass the payload as an argument: a bare "%2f" inside the format
+		// string is misread as a printf directive by go vet.
+		t.Errorf("expected %q in default payloads", `///google.com/%2f..`)
 	}
 	if !found[`/////example.com/`] {
 		t.Error("expected /////example.com/ in default payloads")
