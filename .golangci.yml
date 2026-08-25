@@ -1,0 +1,37 @@
+# Lint gate — kept pragmatic: real bugs and real hygiene, no style wars.
+# golangci-lint v2 config format. CI + Makefile pin the toolchain version.
+version: "2"
+
+linters:
+  # Explicit allowlist — new linters arriving in upgrades can't silently
+  # break builds.
+  default: none
+  enable:
+    - errcheck      # unchecked errors — the classic silent-failure bug
+    - govet         # suspicious constructs, printf issues
+    - staticcheck   # the standard Go static analysis battery
+    - unused        # dead code
+    - ineffassign   # assignments that never read back
+    - misspell      # comment/string typos
+    - unconvert     # redundant type conversions
+
+  settings:
+    errcheck:
+      # Terminal writes during a scan are best-effort by design: a failed
+      # stdout write mid-scan is not an actionable error. Everything else
+      # stays strict.
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+
+  exclusions:
+    rules:
+      # Tests are allowed to ignore errors (e.g. cleanup calls) without ceremony.
+      - path: _test\.go
+        linters:
+          - errcheck
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
